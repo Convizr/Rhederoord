@@ -5,10 +5,7 @@ export const SourceBlocksExtension = {
       trace.type === "Custom_SourceBlocks" ||
       (trace.payload && trace.payload.name === "Custom_SourceBlocks"),
     render: ({ trace, element }) => {
-      // Remove background from the message block
-      element.style.background = "transparent";
-  
-      // 1) Convert the entire trace.payload from string -> object
+      // 1) Convert entire trace.payload from string -> object
       let payloadObj;
       if (typeof trace.payload === "string") {
         try {
@@ -18,12 +15,11 @@ export const SourceBlocksExtension = {
           payloadObj = {};
         }
       } else {
-        // If it's already an object
         payloadObj = trace.payload || {};
       }
       console.log("Parsed payloadObj:", payloadObj);
   
-      // 2) Parse dataChunks if it’s a string
+      // 2) Now parse dataChunks if it’s a string
       let dataChunks = [];
       if (typeof payloadObj.dataChunks === "string") {
         try {
@@ -36,155 +32,168 @@ export const SourceBlocksExtension = {
       }
       console.log("Final dataChunks:", dataChunks);
   
-      // Pagination variables
-      let currentIndex = 0; // we'll show dataChunks in pairs [currentIndex, currentIndex+1]
-      const BLOCKS_PER_PAGE = 2;
-  
-      // 3) Build style and static container
-      let html = `
+      // 3) Build the style + container + blocks
+      const styleString = `
         <style>
+          /* Remove background of the Voiceflow message bubble */
+          .vfrc-message {
+            background: transparent !important;
+          }
+  
           .source-blocks-container {
             display: flex;
-            flex-wrap: wrap;
-            /* no gap */
+            flex-wrap: nowrap; /* We'll control the layout with JS */
+            overflow: hidden; /* Hide blocks that slide out of view */
             font-family: Arial, sans-serif;
-            margin-bottom: 10px; /* space above next/prev buttons */
+            margin-bottom: 10px; /* space above the arrows */
           }
+  
           .source-block {
-            background: none;
+            background: #DCE0EF;
+            color: #000;
             border: 1px solid #bdbcbc;
             border-radius: 8px;
+            padding: 5px;
             width: 135px;
             height: 130px;
-            padding: 5px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            /* no gap */
-            margin-right: 8px; /* small space between blocks */
-            margin-bottom: 8px;
-            color: #000;
+            /* remove gap */
           }
+  
           .summary-text {
             font-size: 14px;
             line-height: 1.3em;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             overflow: hidden;
           }
+  
           .source-row {
             display: flex;
             align-items: center;
             font-size: 14px;
           }
+  
           .source-type-icon {
             font-size: 16px;
             margin-right: 4px;
           }
+  
           .source-name {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             flex: 1;
           }
-          .nav-buttons {
+  
+          /* Carousel controls */
+          .carousel-controls {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            align-items: center;
+            gap: 20px;
           }
-          .nav-btn {
-            padding: 4px 8px;
-            font-size: 12px;
+  
+          .arrow-btn {
+            border: none;
+            background: none;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            border: 1px solid #bdbcbc;
-            border-radius: 4px;
-            background: #f9f9f9;
           }
-          .nav-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+  
+          .arrow-btn:hover {
+            color: #333;
           }
         </style>
-        <div class="source-blocks-container" id="blocksContainer"></div>
       `;
   
-      // If we have more than 2 blocks, add nav buttons
-      if (dataChunks.length > BLOCKS_PER_PAGE) {
-        html += `
-          <div class="nav-buttons">
-            <button class="nav-btn" id="prevBtn">&laquo; Prev</button>
-            <button class="nav-btn" id="nextBtn">Next &raquo;</button>
-          </div>
-        `;
-      }
-  
-      element.innerHTML = html;
-  
-      // 4) Now we have #blocksContainer for rendering blocks
-      const blocksContainer = element.querySelector("#blocksContainer");
-      const prevBtn = element.querySelector("#prevBtn");
-      const nextBtn = element.querySelector("#nextBtn");
-  
-      // Function to render the current "page" of blocks
-      function renderBlocks() {
-        // slice the data for the current page
-        const pageItems = dataChunks.slice(currentIndex, currentIndex + BLOCKS_PER_PAGE);
-        // build the HTML for these items
-        const blocksHtml = pageItems.map(chunk => {
-          const { content, source } = chunk;
-          const summary = content && content.length > 80
+      // Build blocks HTML
+      const blocksHtml = dataChunks.map((chunk) => {
+        const { content, source } = chunk;
+        // Truncate to ~80 chars
+        const summary =
+          content && content.length > 80
             ? content.substring(0, 80) + "..."
-            : (content || "");
+            : content || "";
   
-          const sourceName = source?.name || "Unknown Source";
-          const sourceType = source?.type || "unknown";
+        const sourceName = source?.name || "Unknown Source";
+        const sourceType = source?.type || "unknown";
   
-          return `
-            <div class="source-block">
-              <div class="summary-text">${summary}</div>
-              <div class="source-row">
-                <div class="source-type-icon">
-                  ${sourceType === "pdf" ? "📄" : "ℹ️"}
-                </div>
-                <div class="source-name" title="${sourceName}">
-                  ${sourceName}
-                </div>
+        return `
+          <div class="source-block">
+            <div class="summary-text">${summary}</div>
+            <div class="source-row">
+              <div class="source-type-icon">
+                ${sourceType === "pdf" ? "📄" : "ℹ️"}
+              </div>
+              <div class="source-name" title="${sourceName}">
+                ${sourceName}
               </div>
             </div>
-          `;
-        }).join("");
+          </div>
+        `;
+      }).join("");
   
-        blocksContainer.innerHTML = blocksHtml;
+      // We'll wrap blocks in a track for the "carousel" effect
+      const finalHtml = `
+        ${styleString}
+        <div class="source-blocks-container" id="blocksTrack">
+          ${blocksHtml}
+        </div>
+        <div class="carousel-controls" id="carouselControls" style="display: none;">
+          <button class="arrow-btn" id="prevBtn"><strong>«</strong></button>
+          <button class="arrow-btn" id="nextBtn"><strong>»</strong></button>
+        </div>
+      `;
   
-        // Update button states
-        if (prevBtn) {
-          prevBtn.disabled = (currentIndex <= 0);
+      // 4) Set element.innerHTML
+      element.innerHTML = finalHtml;
+  
+      // 5) If we have more than 2 chunks, show the arrows
+      if (dataChunks.length > 2) {
+        const controls = element.querySelector("#carouselControls");
+        if (controls) controls.style.display = "flex";
+  
+        // 6) Implement a simple "2 at a time" display logic
+        const blocksTrack = element.querySelector("#blocksTrack");
+        const blockEls = blocksTrack.querySelectorAll(".source-block");
+        let currentIndex = 0;
+        const cardsToShow = 2;
+  
+        // Hide all blocks except the first 2
+        function updateDisplay() {
+          blockEls.forEach((block, i) => {
+            if (i >= currentIndex && i < currentIndex + cardsToShow) {
+              block.style.display = "flex";
+            } else {
+              block.style.display = "none";
+            }
+          });
         }
-        if (nextBtn) {
-          nextBtn.disabled = (currentIndex + BLOCKS_PER_PAGE >= dataChunks.length);
-        }
-      }
   
-      // 5) Attach event listeners to next/prev if they exist
-      if (prevBtn) {
+        updateDisplay(); // initial
+  
+        // 7) Next/Prev buttons
+        const prevBtn = element.querySelector("#prevBtn");
+        const nextBtn = element.querySelector("#nextBtn");
+  
         prevBtn.addEventListener("click", () => {
           if (currentIndex > 0) {
-            currentIndex -= BLOCKS_PER_PAGE;
-            renderBlocks();
+            currentIndex -= cardsToShow;
+            updateDisplay();
           }
         });
-      }
   
-      if (nextBtn) {
         nextBtn.addEventListener("click", () => {
-          if (currentIndex + BLOCKS_PER_PAGE < dataChunks.length) {
-            currentIndex += BLOCKS_PER_PAGE;
-            renderBlocks();
+          if (currentIndex + cardsToShow < blockEls.length) {
+            currentIndex += cardsToShow;
+            updateDisplay();
           }
         });
       }
-  
-      // 6) Initial render
-      renderBlocks();
     },
-  };  
+  };
+  

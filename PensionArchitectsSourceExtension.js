@@ -1,13 +1,41 @@
-export const SourceBlocksExtension = {
+const SourceBlocksExtension = {
     name: "SourceBlocks",
     type: "response",
     match: ({ trace }) =>
       trace.type === "Custom_SourceBlocks" ||
       (trace.payload && trace.payload.name === "Custom_SourceBlocks"),
     render: ({ trace, element }) => {
-        console.log("Raw Payload:", JSON.stringify(trace.payload, null, 2));
-      // 1) Create and inject CSS styles as a <style> tag
-      const styleContent = `
+      // 1) Convert the entire trace.payload from string -> object
+      let payloadObj;
+      if (typeof trace.payload === "string") {
+        try {
+          payloadObj = JSON.parse(trace.payload);
+        } catch (err) {
+          console.error("Error parsing entire trace.payload:", err);
+          payloadObj = {};
+        }
+      } else {
+        // If it's already an object
+        payloadObj = trace.payload || {};
+      }
+      console.log("Parsed payloadObj:", payloadObj);
+  
+      // 2) Now parse dataChunks if it’s a string
+      let dataChunks = [];
+      if (typeof payloadObj.dataChunks === "string") {
+        try {
+          dataChunks = JSON.parse(payloadObj.dataChunks);
+        } catch (err) {
+          console.error("Error parsing payloadObj.dataChunks:", err);
+        }
+      } else if (Array.isArray(payloadObj.dataChunks)) {
+        dataChunks = payloadObj.dataChunks;
+      }
+      console.log("Final dataChunks:", dataChunks);
+  
+      // 3) Inject styling
+      const styleTag = document.createElement("style");
+      styleTag.textContent = `
         .source-blocks-container {
           display: flex;
           flex-wrap: wrap;
@@ -49,38 +77,16 @@ export const SourceBlocksExtension = {
           flex: 1;
         }
       `;
-      const styleTag = document.createElement("style");
-      styleTag.textContent = styleContent;
       document.head.appendChild(styleTag);
   
-      // 2) Extract payload data
-      const payload = trace.payload || {};
-  
-      let dataChunks;
-      // If dataChunks is a string, parse it
-      if (typeof payload.dataChunks === 'string') {
-        try {
-          dataChunks = JSON.parse(payload.dataChunks);
-        } catch (e) {
-          console.error("Error parsing dataChunks:", e);
-          dataChunks = [];
-        }
-      } else {
-        // If it's already an array (or something else), fallback gracefully
-        dataChunks = Array.isArray(payload.dataChunks) ? payload.dataChunks : [];
-      }
-  
-      console.log("Parsed dataChunks:", dataChunks);
-  
-      // 3) Create the container for all blocks
+      // 4) Create the container
       const container = document.createElement("div");
       container.classList.add("source-blocks-container");
   
-      // 4) Build each block
+      // 5) Build each block
       dataChunks.forEach((chunk) => {
         const { content, source } = chunk;
-        // Truncate content to ~80 chars
-        const summary = content && content.length > 80
+        const summary = (content && content.length > 80)
           ? content.substring(0, 80) + "..."
           : (content || "");
   
@@ -99,11 +105,10 @@ export const SourceBlocksExtension = {
             <div class="source-name">${sourceName}</div>
           </div>
         `;
-  
         container.appendChild(block);
       });
   
-      // 5) Attach to the DOM
+      // 6) Attach to the DOM
       element.appendChild(container);
     },
   };  

@@ -5,6 +5,7 @@ export const SourceBlocksExtension = {
       trace.type === "Custom_SourceBlocks" ||
       (trace.payload && trace.payload.name === "Custom_SourceBlocks"),
     render: ({ trace, element }) => {
+        console.log("Raw Payload:", JSON.stringify(trace.payload, null, 2));
       // 1) Create and inject CSS styles as a <style> tag
       const styleContent = `
         .source-blocks-container {

@@ -1,4 +1,4 @@
-const SourceBlocksExtension = {
+export const SourceBlocksExtension = {
     name: "SourceBlocks",
     type: "response",
     match: ({ trace }) =>

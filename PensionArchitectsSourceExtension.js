@@ -43,8 +43,8 @@ export const SourceBlocksExtension = {
             font-family: Arial, sans-serif;
           }
           .source-block {
-            background: #1e1e1e;
-            color: #eee;
+            background: #DCE0EF;
+            color: #000;
             border: 1px solid #333;
             border-radius: 8px;
             padding: 12px;
@@ -75,6 +75,10 @@ export const SourceBlocksExtension = {
             overflow: hidden;
             text-overflow: ellipsis;
             flex: 1;
+            /* 
+              If you want a cursor pointer or something on hover, uncomment:
+              cursor: pointer;
+            */
           }
         </style>
       `;
@@ -90,6 +94,7 @@ export const SourceBlocksExtension = {
         const sourceName = source?.name || "Unknown Source";
         const sourceType = source?.type || "unknown";
   
+        // Add title attribute for hover tooltip
         return `
           <div class="source-block">
             <div class="summary-text">${summary}</div>
@@ -97,7 +102,12 @@ export const SourceBlocksExtension = {
               <div class="source-type-icon">
                 ${sourceType === "pdf" ? "📄" : "ℹ️"}
               </div>
-              <div class="source-name">${sourceName}</div>
+              <div 
+                class="source-name" 
+                title="${sourceName}"
+              >
+                ${sourceName}
+              </div>
             </div>
           </div>
         `;

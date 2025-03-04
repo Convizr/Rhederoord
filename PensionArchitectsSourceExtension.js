@@ -64,18 +64,17 @@ export const SourceBlocksExtension = {
             border-radius: 8px;
             padding: 5px;
             width: 135px;
-            height: 130px;
+            height: 85px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            /* no gap inside the block */
           }
   
           .summary-text {
-            font-size: 14px;
+            font-size: 10px;
             line-height: 1.3em;
-            margin-bottom: 4px; /* small space from the row below */
+            margin-bottom: 4px;
             overflow: hidden;
           }
   
@@ -88,7 +87,6 @@ export const SourceBlocksExtension = {
   
           .source-type-icon {
             font-size: 16px;
-            margin-right: 4px;
           }
   
           .source-name {
@@ -96,6 +94,7 @@ export const SourceBlocksExtension = {
             overflow: hidden;
             text-overflow: ellipsis;
             flex: 1;
+            font-size: 12px;
           }
   
           /* Carousel controls */

@@ -33,82 +33,85 @@ export const SourceBlocksExtension = {
       }
       console.log("Final dataChunks:", dataChunks);
   
-      // 3) Inject styling
-      const styleTag = document.createElement("style");
-      styleTag.textContent = `
-        .source-blocks-container {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 12px;
-          font-family: Arial, sans-serif;
-        }
-        .source-block {
-          background: #1e1e1e;
-          color: #eee;
-          border: 1px solid #333;
-          border-radius: 8px;
-          padding: 12px;
-          width: 250px;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          gap: 8px;
-        }
-        .summary-text {
-          font-size: 14px;
-          line-height: 1.3em;
-          margin-bottom: 8px;
-          overflow: hidden;
-        }
-        .source-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 14px;
-        }
-        .source-type-icon {
-          font-size: 16px;
-        }
-        .source-name {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          flex: 1;
-        }
+      // 3) Build the style + container + blocks all in one HTML string
+      const styleString = `
+        <style>
+          .source-blocks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-family: Arial, sans-serif;
+          }
+          .source-block {
+            background: #1e1e1e;
+            color: #eee;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            width: 250px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+          }
+          .summary-text {
+            font-size: 14px;
+            line-height: 1.3em;
+            margin-bottom: 8px;
+            overflow: hidden;
+          }
+          .source-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+          }
+          .source-type-icon {
+            font-size: 16px;
+          }
+          .source-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+          }
+        </style>
       `;
-      document.head.appendChild(styleTag);
   
-      // 4) Create the container
-      const container = document.createElement("div");
-      container.classList.add("source-blocks-container");
-  
-      // 5) Build each block
-      dataChunks.forEach((chunk) => {
+      // 4) Build the blocks
+      const blocksHtml = dataChunks.map(chunk => {
         const { content, source } = chunk;
-        const summary = (content && content.length > 80)
+        // Truncate content to ~80 chars
+        const summary = content && content.length > 80
           ? content.substring(0, 80) + "..."
           : (content || "");
   
         const sourceName = source?.name || "Unknown Source";
         const sourceType = source?.type || "unknown";
   
-        // Create the block element
-        const block = document.createElement("div");
-        block.classList.add("source-block");
-        block.innerHTML = `
-          <div class="summary-text">${summary}</div>
-          <div class="source-row">
-            <div class="source-type-icon">
-              ${sourceType === "pdf" ? "📄" : "ℹ️"}
+        return `
+          <div class="source-block">
+            <div class="summary-text">${summary}</div>
+            <div class="source-row">
+              <div class="source-type-icon">
+                ${sourceType === "pdf" ? "📄" : "ℹ️"}
+              </div>
+              <div class="source-name">${sourceName}</div>
             </div>
-            <div class="source-name">${sourceName}</div>
           </div>
         `;
-        container.appendChild(block);
-      });
+      }).join("");
   
-      // 6) Attach to the DOM
-      element.appendChild(container);
+      // 5) Combine style + container + blocks
+      const finalHtml = `
+        ${styleString}
+        <div class="source-blocks-container">
+          ${blocksHtml}
+        </div>
+      `;
+  
+      // 6) Set element.innerHTML to the combined HTML
+      element.innerHTML = finalHtml;
     },
   };  

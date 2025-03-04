@@ -1,11 +1,10 @@
-export const SourceBlocksExtension = {
+const SourceBlocksExtension = {
     name: "SourceBlocks",
     type: "response",
     match: ({ trace }) =>
       trace.type === "Custom_SourceBlocks" ||
       (trace.payload && trace.payload.name === "Custom_SourceBlocks"),
     render: ({ trace, element }) => {
-
       // 1) Create and inject CSS styles as a <style> tag
       const styleContent = `
         .source-blocks-container {
@@ -49,14 +48,27 @@ export const SourceBlocksExtension = {
           flex: 1;
         }
       `;
-      
       const styleTag = document.createElement("style");
       styleTag.textContent = styleContent;
       document.head.appendChild(styleTag);
   
       // 2) Extract payload data
       const payload = trace.payload || {};
-      const dataChunks = Array.isArray(payload.dataChunks) ? payload.dataChunks : [];
+  
+      let dataChunks;
+      // If dataChunks is a string, parse it
+      if (typeof payload.dataChunks === 'string') {
+        try {
+          dataChunks = JSON.parse(payload.dataChunks);
+        } catch (e) {
+          console.error("Error parsing dataChunks:", e);
+          dataChunks = [];
+        }
+      } else {
+        // If it's already an array (or something else), fallback gracefully
+        dataChunks = Array.isArray(payload.dataChunks) ? payload.dataChunks : [];
+      }
+  
       console.log("Parsed dataChunks:", dataChunks);
   
       // 3) Create the container for all blocks
@@ -66,7 +78,8 @@ export const SourceBlocksExtension = {
       // 4) Build each block
       dataChunks.forEach((chunk) => {
         const { content, source } = chunk;
-        const summary = (content && content.length > 80)
+        // Truncate content to ~80 chars
+        const summary = content && content.length > 80
           ? content.substring(0, 80) + "..."
           : (content || "");
   
@@ -92,4 +105,4 @@ export const SourceBlocksExtension = {
       // 5) Attach to the DOM
       element.appendChild(container);
     },
-  };
+  };  

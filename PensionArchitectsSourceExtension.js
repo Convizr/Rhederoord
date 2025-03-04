@@ -32,20 +32,29 @@ export const SourceBlocksExtension = {
       }
       console.log("Final dataChunks:", dataChunks);
   
-      // 3) Build the style + container + blocks
+      // 3) Build style + container + blocks
+      //    - We target ONLY the bubble that contains our .source-blocks-container
+      //      so we don't remove backgrounds for all .vfrc-message elements.
       const styleString = `
         <style>
-          /* Remove background of the Voiceflow message bubble */
-          .vfrc-message {
+          /* 
+            Remove background ONLY for this extension's message bubble 
+            by selecting .vfrc-message that directly contains .source-blocks-container 
+          */
+          .vfrc-message > .source-blocks-container {
             background: transparent !important;
           }
   
           .source-blocks-container {
             display: flex;
-            flex-wrap: nowrap; /* We'll control the layout with JS */
-            overflow: hidden; /* Hide blocks that slide out of view */
+            flex-wrap: nowrap;
+            /* The container is sized for 2 blocks + 1 gap (12px).
+               2 * 135 + 12 = 282px total width. */
+            width: 282px;
+            overflow: hidden;
             font-family: Arial, sans-serif;
             margin-bottom: 10px; /* space above the arrows */
+            gap: 12px; /* keep a 12px gap between blocks */
           }
   
           .source-block {
@@ -60,13 +69,13 @@ export const SourceBlocksExtension = {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            /* remove gap */
+            /* no gap inside the block */
           }
   
           .summary-text {
             font-size: 14px;
             line-height: 1.3em;
-            margin-bottom: 4px;
+            margin-bottom: 4px; /* small space from the row below */
             overflow: hidden;
           }
   
@@ -74,6 +83,7 @@ export const SourceBlocksExtension = {
             display: flex;
             align-items: center;
             font-size: 14px;
+            /* no gap here */
           }
   
           .source-type-icon {
@@ -95,7 +105,6 @@ export const SourceBlocksExtension = {
             align-items: center;
             gap: 20px;
           }
-  
           .arrow-btn {
             border: none;
             background: none;
@@ -103,14 +112,13 @@ export const SourceBlocksExtension = {
             font-weight: bold;
             cursor: pointer;
           }
-  
           .arrow-btn:hover {
             color: #333;
           }
         </style>
       `;
   
-      // Build blocks HTML
+      // Build each block's HTML
       const blocksHtml = dataChunks.map((chunk) => {
         const { content, source } = chunk;
         // Truncate to ~80 chars
@@ -137,7 +145,8 @@ export const SourceBlocksExtension = {
         `;
       }).join("");
   
-      // We'll wrap blocks in a track for the "carousel" effect
+      // Combine style + container + blocks
+      // We add an id="blocksTrack" for referencing the block list
       const finalHtml = `
         ${styleString}
         <div class="source-blocks-container" id="blocksTrack">
@@ -157,7 +166,7 @@ export const SourceBlocksExtension = {
         const controls = element.querySelector("#carouselControls");
         if (controls) controls.style.display = "flex";
   
-        // 6) Implement a simple "2 at a time" display logic
+        // 6) "2 at a time" logic
         const blocksTrack = element.querySelector("#blocksTrack");
         const blockEls = blocksTrack.querySelectorAll(".source-block");
         let currentIndex = 0;
@@ -173,7 +182,6 @@ export const SourceBlocksExtension = {
             }
           });
         }
-  
         updateDisplay(); // initial
   
         // 7) Next/Prev buttons
@@ -195,5 +203,4 @@ export const SourceBlocksExtension = {
         });
       }
     },
-  };
-  
+  };  

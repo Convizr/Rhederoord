@@ -2,7 +2,7 @@ export const PersonalInfoFormExtension = {
     name: 'PersonalInfoForm',
     type: 'response',
     match: ({ trace }) =>
-      trace.type === 'personal_info_form' || trace.payload.name === 'personal_info_form',
+      trace.type === 'personal_info_form' || (trace.payload && trace.payload.name === 'personal_info_form'),
     render: ({ trace, element }) => {
       console.log('Rendering PersonalInfoFormExtension');
   
